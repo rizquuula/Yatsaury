@@ -347,6 +347,9 @@ Ship `.env.example` and `config.example.toml`. Secrets only via env/`.env`, neve
 
 ## 14. Testing Strategy
 
+- **Process: TDD** (red → green → refactor). Each component is written test-first; an implementation
+  is not started before its failing test exists. See `IMPLEMENTATION_PROGRESS.md` for the paired
+  test/impl checklist.
 - `pytest` with mocked HTTP (respx/responses) and recorded LLM fixtures → deterministic and free.
 - Per-stage tests: sources, chunking, generators, **schema adapters (render snapshots per schema)**,
   verify (quote-check + judge), dedup, exporters.

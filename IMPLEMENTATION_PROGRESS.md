@@ -1,91 +1,134 @@
-# Yatsaury — Implementation Progress
+# Yatsaury — Implementation Progress (TDD)
 
-Tracks the MVP-first build order. See [DESIGN.md](./DESIGN.md) for full architecture.
+MVP-first build order, driven by **Test-Driven Development**. See [DESIGN.md](./DESIGN.md) for architecture.
 
 **Status legend**: `[ ]` not started · `[~]` in progress · `[x]` done
 
+**Item icons**: 🔴 write test first (must fail) · 🟢 implementation (only after its 🔴) · 🔵 refactor ·
+plain box = scaffolding/config/docs, **no test by design**. Every code/logic task is a 🔴→🟢 pair.
+
+## TDD workflow (rules)
+
+Every unit of work follows **red → green → refactor**:
+
+1. 🔴 **Red** — write the test first; run it; confirm it *fails* for the right reason.
+2. 🟢 **Green** — write the *minimum* code to make it pass.
+3. 🔵 **Refactor** — clean up with the test still green.
+
+Rules of this file:
+- **A 🟢 implementation box may not be checked until its paired 🔴 test box is checked** (test exists and was seen failing first).
+- `uv run pytest` must be green at the end of every item before moving on.
+- LLM and HTTP are **always mocked** in unit tests (recorded fixtures) → deterministic and free.
+  End-to-end items may run against local Ollama and are marked `@pytest.mark.e2e` (opt-in, not in default run).
+- Each phase ends with `uv run pytest && uv run ruff check && uv run mypy` clean.
+
 ---
 
-## Phase 0 — Skeleton (foundation)
+## Phase 0 — Skeleton & test harness
 
-Goal: project boots, `yatsaury --help` works, empty test suite green.
+Goal: project boots, `yatsaury --help` works, test infrastructure runs.
 
-- [ ] `pyproject.toml` via `uv init` (deps, ruff/mypy config, entry point `yatsaury = "yatsaury.cli:app"`)
+- [ ] `pyproject.toml` via `uv init` (deps incl. pytest/respx, ruff/mypy config, entry point `yatsaury = "yatsaury.cli:app"`)
 - [ ] `src/yatsaury/` package layout (`__init__.py`, `__main__.py`)
-- [ ] `models.py` — `Document`, `Chunk`, `Sample` (Pydantic v2)
-- [ ] `config.py` — pydantic-settings `Settings` (layered loading)
-- [ ] `cli.py` — empty Typer app with `--help`
+- [ ] Test harness: `tests/conftest.py`, `tests/fixtures/`, pytest config (markers incl. `e2e`), coverage
+- [ ] 🔴 `test_models.py` — `Document`/`Chunk`/`Citation`/`Sample` validate, (de)serialize, reject bad input
+- [ ] 🟢 `models.py` — implement the Pydantic v2 models
+- [ ] 🔴 `test_config.py` — precedence flag > env > `.env` > toml > default; secret masking
+- [ ] 🟢 `config.py` — pydantic-settings `Settings` (layered)
+- [ ] 🔴 `test_cli_smoke.py` — Typer `--help` exits 0 and lists verbs (CliRunner)
+- [ ] 🟢 `cli.py` — empty Typer app + stubbed subcommands
 - [ ] `.gitignore`, `.env.example`, `config.example.toml`, `README.md` stub
-- [ ] **Verify**: `uv run yatsaury --help` lists commands; `uv run pytest` green
+- [ ] **Phase gate**: `uv run pytest` green; `uv run yatsaury --help` works
 
 ## Phase 1 — End-to-end vertical slice (MVP)
 
-Goal: simplest full path produces valid JSONL.
+Goal: simplest full path produces valid records, proven by tests.
 
-- [ ] `sources/text.py` — `TextLoader` (raw text / `.txt` / `.md`) + `sources/base.py` protocol
-- [ ] `processing/chunk.py` — token-aware recursive splitter (tiktoken)
-- [ ] `llm/client.py` — `LLMClient` (openai SDK + `base_url`, JSON mode, tenacity retries)
-- [ ] `llm/prompts.py` — grounding-first Q&A generation prompt
-- [ ] `generators/qa.py` — `QaGenerator` + `generators/base.py` protocol & registry
-- [ ] `schemas/base.py` — `SchemaAdapter` protocol + registry; `schemas/chatml.py` + `schemas/qa.py` (two adapters to prove the axis)
-- [ ] `exporters/jsonl.py` — `JsonlExporter` + `exporters/base.py` protocol & registry (operates on rendered dicts)
-- [ ] `pipeline.py` — minimal Orchestrator wiring generate → render (schema) → serialize
-- [ ] `cli.py` — implement `generate` (text → qa → schema → jsonl) with `-s/--schema`
-- [ ] `examples/sirah_sample.txt`
-- [ ] **Verify**: `uv run yatsaury generate -i examples/sirah_sample.txt -t qa -s chatml -f jsonl -o ./out --base-url http://localhost:11434/v1 --model llama3.1 --limit-chunks 2` → `out.jsonl` lines are valid ChatML records (`messages[]`); re-running with `-s qa` yields `question`/`answer` records from the same `Sample`
+- [ ] 🔴 `test_sources_text.py` — `TextLoader` loads str/`.txt`/`.md` → `Document`
+- [ ] 🟢 `sources/base.py` (protocol) + `sources/text.py`
+- [ ] 🔴 `test_chunk.py` — token-aware splitter respects size/overlap, sets `char_span`, never splits mid-token boundary wrongly
+- [ ] 🟢 `processing/chunk.py` (tiktoken)
+- [ ] 🔴 `test_llm_client.py` — `LLMClient` parses JSON-mode output, retries on failure (mocked openai), passes `base_url`
+- [ ] 🟢 `llm/client.py` (openai SDK + tenacity) + `llm/prompts.py` (grounding-first Q&A prompt)
+- [ ] 🔴 `test_generators_qa.py` — `QaGenerator` turns a chunk + mocked LLM response into valid `Sample`s; drops `{"insufficient": true}`
+- [ ] 🟢 `generators/base.py` (protocol + registry) + `generators/qa.py`
+- [ ] 🔴 `test_schemas.py` — fixed `Sample` renders to expected dict for `chatml` and `qa` (snapshot); `supports()` correct
+- [ ] 🟢 `schemas/base.py` (protocol + registry) + `schemas/chatml.py` + `schemas/qa.py`
+- [ ] 🔴 `test_exporters_jsonl.py` — `JsonlExporter` writes one valid JSON object per line from rendered dicts
+- [ ] 🟢 `exporters/base.py` (protocol + registry) + `exporters/jsonl.py`
+- [ ] 🔴 `test_pipeline.py` — Orchestrator wires generate → render → serialize (all mocked); one bad chunk doesn't abort the run
+- [ ] 🟢 `pipeline.py` (minimal Orchestrator)
+- [ ] 🔴 `test_cli_generate.py` — `generate` (CliRunner, mocked LLM) produces ChatML JSONL; `-s qa` produces Q&A from same run
+- [ ] 🟢 `cli.py` — implement `generate` with `-t/-s/-f` + `examples/sirah_sample.txt`
+- [ ] 🔴 `test_e2e_generate.py` (`@e2e`) — real local Ollama run yields valid records
+- [ ] **Phase gate**: unit suite green; opt-in e2e passes against Ollama
 
 ## Phase 2 — Real sources
 
-Goal: usable on actual Sirah PDFs and web pages.
-
-- [ ] `sources/pdf.py` — `PdfLoader` (PyMuPDF, page numbers) + `pypdf` fallback
-- [ ] `sources/url.py` — `UrlLoader` (trafilatura + httpx)
-- [ ] `sources/base.py` — `resolve_loader()` auto-detection
-- [ ] `processing/clean.py` — normalization (whitespace, headers/footers, dehyphenation)
-- [ ] `cli.py` — `inspect` command (load + chunk, print stats)
-- [ ] **Verify**: `uv run yatsaury inspect -i <real sirah PDF>` prints sane chunk/token stats; generate from a URL succeeds
+- [ ] 🔴 `test_sources_pdf.py` — `PdfLoader` extracts text + page numbers from a tiny fixture PDF (`pypdf` fallback path tested too)
+- [ ] 🟢 `sources/pdf.py` (PyMuPDF + `pypdf` fallback)
+- [ ] 🔴 `test_sources_url.py` — `UrlLoader` extracts main content from a recorded HTML fixture (mocked httpx), strips boilerplate
+- [ ] 🟢 `sources/url.py` (trafilatura + httpx)
+- [ ] 🔴 `test_resolve_loader.py` — picks loader by extension / URL scheme / `--source` override
+- [ ] 🟢 `sources/base.py` — `resolve_loader()`
+- [ ] 🔴 `test_clean.py` — normalizes whitespace, strips repeated headers/footers, de-hyphenates line breaks
+- [ ] 🟢 `processing/clean.py`
+- [ ] 🔴 `test_cli_inspect.py` — `inspect` prints chunk count/token stats (CliRunner)
+- [ ] 🟢 `cli.py` — `inspect` command
+- [ ] **Phase gate**: suite green on real PDF/URL fixtures
 
 ## Phase 3 — Grounding & quality (religious-accuracy core)
 
-Goal: tool becomes trustworthy for religious content.
-
-- [ ] Programmatic `supporting_quote` substring check (whitespace-fuzzy)
-- [ ] `quality/verify.py` — LLM-judge grounding scorer + `--judge-model`
-- [ ] `cli.py` — `--verify/--no-verify`, `--min-score` filtering; `verify` subcommand (re-score JSONL)
-- [ ] `quality/dedup.py` — exact (normalized hash) + near-dup (`rapidfuzz`)
-- [ ] `exporters/review_csv.py` — `CsvReviewExporter` (human-review CSV)
-- [ ] `cli.py` — `export` builds final dataset from approved rows
-- [ ] **Verify**: a deliberately unsupported sample is dropped by quote-check/judge; `--min-score` filters; review CSV opens in a spreadsheet; `export` keeps only `approved` rows
+- [ ] 🔴 `test_quote_check.py` — `supporting_quote` substring check passes on real spans, fails on invented text (whitespace-fuzzy)
+- [ ] 🟢 programmatic quote-check in `quality/verify.py`
+- [ ] 🔴 `test_verify_judge.py` — LLM-judge (mocked) returns `grounding_score`/`is_supported`; samples below `--min-score` dropped
+- [ ] 🟢 `quality/verify.py` — LLM-judge scorer + `--judge-model`
+- [ ] 🔴 `test_dedup.py` — exact dups collapse; near-dups (rapidfuzz) collapse keeping highest score
+- [ ] 🟢 `quality/dedup.py`
+- [ ] 🔴 `test_review_csv.py` — `CsvReviewExporter` writes expected columns incl. `approved`; round-trips back
+- [ ] 🟢 `exporters/review_csv.py`
+- [ ] 🔴 `test_cli_verify_export.py` — `verify` re-scores a JSONL; `export` keeps only `approved` rows
+- [ ] 🟢 `cli.py` — `--verify/--no-verify`, `--min-score`; `verify` + `export` subcommands
+- [ ] **Phase gate**: an unsupported sample is provably dropped end-to-end
 
 ## Phase 4 — Remaining dataset types, schemas & formats
 
-- [ ] `generators/instruction.py` — `InstructionGenerator`
-- [ ] `generators/rag.py` — `RagGenerator` (no LLM; chunk + metadata)
-- [ ] `generators/summary.py` — `SummaryGenerator`
-- [ ] `schemas/` — remaining adapters: `alpaca.py`, `sharegpt.py`, `completion.py`, `rag.py`, `raw.py`; enforce compatibility matrix (skip+log unsupported type×schema)
-- [ ] `cli.py` — `schemas` command (list adapters + compatible types); `--system-prompt`, `--cite-in-answer`
-- [ ] `exporters/hf.py` — `HfExporter` (`datasets` lib)
-- [ ] `cli.py` — `--type all`, multi-schema `-s` and multi-format `-f` output in one run
-- [ ] **Verify**: `-t all -s chatml -s sharegpt -s alpaca -f jsonl -f hf` writes one dataset per schema; each HF dataset round-trips via `datasets.load_from_disk()`; incompatible pairs (e.g. `rag` × `alpaca`) are skipped with a warning
+- [ ] 🔴 `test_generators_instruction.py` / `_summary.py` / `_rag.py` (rag = no LLM)
+- [ ] 🟢 `generators/instruction.py`, `generators/summary.py`, `generators/rag.py`
+- [ ] 🔴 `test_schemas.py` (extend) — render snapshots for `alpaca`/`sharegpt`/`completion`/`rag`/`raw`; **compatibility matrix enforced** (unsupported type×schema skipped + logged, never malformed)
+- [ ] 🟢 `schemas/alpaca.py`, `sharegpt.py`, `completion.py`, `rag.py`, `raw.py`
+- [ ] 🔴 `test_exporters_hf.py` — `HfExporter` output round-trips via `datasets.load_from_disk()`
+- [ ] 🟢 `exporters/hf.py`
+- [ ] 🔴 `test_cli_schemas_multi.py` — `schemas` lists adapters+types; `generate -t all -s a -s b -f jsonl -f hf` emits one dataset per schema; incompatible pairs skipped with warning
+- [ ] 🟢 `cli.py` — `schemas` command, `--system-prompt`, `--cite-in-answer`, multi `-t/-s/-f`
+- [ ] **Phase gate**: full matrix covered by tests
 
 ## Phase 5 — Knowledge-injection enhancements
 
-- [ ] `--paraphrases` — multiple paraphrased Q&A per fact
-- [ ] `--difficulty` — easy/medium/hard mix
-- [ ] Optional fact-extraction step before generation (`fact_id` on samples)
-- [ ] Bidirectional / inverse questions
-- [ ] Coverage report (facts with too few samples)
-- [ ] **Verify**: same fact appears as multiple varied samples; coverage report runs
+- [ ] 🔴 `test_paraphrases.py` — N paraphrases per fact share a `fact_id`
+- [ ] 🟢 `--paraphrases`
+- [ ] 🔴 `test_difficulty.py` — easy/medium/hard mix produced
+- [ ] 🟢 `--difficulty`
+- [ ] 🔴 `test_fact_extraction.py` — fact-extraction step yields atomic facts; Q&A generated per fact
+- [ ] 🟢 optional fact-extraction step (`fact_id` on samples)
+- [ ] 🔴 `test_bidirectional.py` — inverse question generated for a fact
+- [ ] 🟢 bidirectional / inverse questions
+- [ ] 🔴 `test_coverage_report.py` — flags facts with too few samples
+- [ ] 🟢 coverage report
+- [ ] **Phase gate**: suite green
 
 ## Phase 6 — Polish
 
-- [ ] `cache.py` — content-hash disk cache / resumability
-- [ ] `--dry-run` — plan + token/cost estimate, no LLM calls
-- [ ] Embeddings-based near-dup (optional, via `/embeddings`)
-- [ ] `rich` progress bars
-- [ ] `config show` command
-- [ ] README + examples, broaden test coverage
-- [ ] **Verify**: re-run skips cached work; `--dry-run` prints estimate; `ruff check` + `mypy` clean
+- [ ] 🔴 `test_cache.py` — second run is a cache hit (no LLM/extraction re-call) for same input+config
+- [ ] 🟢 `cache.py` — content-hash disk cache / resumability
+- [ ] 🔴 `test_dry_run.py` — `--dry-run` prints plan + token/cost estimate, makes zero LLM calls
+- [ ] 🟢 `--dry-run`
+- [ ] 🔴 `test_embeddings_dedup.py` — embeddings near-dup (mocked `/embeddings`)
+- [ ] 🟢 embeddings-based near-dup (optional)
+- [ ] 🔴 `test_cli_config_show.py` — `config show` prints resolved config with the API key masked
+- [ ] 🟢 `config show` command
+- [ ] `rich` progress bars (cosmetic, no test); README + examples; raise coverage threshold
+- [ ] **Phase gate**: `uv run pytest && uv run ruff check && uv run mypy` clean; coverage ≥ target
 
 ---
 
@@ -97,4 +140,7 @@ Goal: tool becomes trustworthy for religious content.
   `record schema` (Alpaca/ShareGPT/ChatML/qa/completion/rag/raw) × `serialization` (jsonl/hf/csv).
   Added a new `schemas/` adapter family + `--schema` flag; exporters now serialize already-rendered
   dicts (schema-agnostic). Default schema `chatml`.
+- 2026-06-18 — Adopted **TDD** (red→green→refactor) as the build process; each component pairs a
+  test-first 🔴 item with its 🟢 implementation. LLM/HTTP mocked in unit tests; e2e against Ollama
+  is opt-in (`@pytest.mark.e2e`).
 - _(add decisions/changes here as implementation proceeds)_
