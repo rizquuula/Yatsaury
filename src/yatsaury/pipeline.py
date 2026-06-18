@@ -6,9 +6,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from yatsaury.exporters import hf as _hf_reg  # noqa: F401 — triggers registration
 from yatsaury.exporters import jsonl as _jsonl_reg  # noqa: F401 — triggers registration
+from yatsaury.exporters import review_csv as _csv_reg  # noqa: F401 — triggers registration
 from yatsaury.exporters.base import get_exporter
+from yatsaury.generators import instruction as _instr_reg  # noqa: F401 — triggers registration
 from yatsaury.generators import qa as _qa_reg  # noqa: F401 — triggers registration
+from yatsaury.generators import rag as _rag_gen_reg  # noqa: F401 — triggers registration
+from yatsaury.generators import summary as _summary_reg  # noqa: F401 — triggers registration
 from yatsaury.generators.base import get_generator
 from yatsaury.llm.client import LLMClient
 from yatsaury.models import Sample
@@ -16,8 +21,13 @@ from yatsaury.processing.chunk import chunk_document
 from yatsaury.processing.clean import clean_text
 from yatsaury.quality.dedup import dedup_samples
 from yatsaury.quality.verify import verify_samples
+from yatsaury.schemas import alpaca as _alpaca_reg  # noqa: F401 — triggers registration
 from yatsaury.schemas import chatml as _chatml_reg  # noqa: F401 — triggers registration
+from yatsaury.schemas import completion as _completion_reg  # noqa: F401 — triggers registration
 from yatsaury.schemas import qa as _qa_schema_reg  # noqa: F401 — triggers registration
+from yatsaury.schemas import rag as _rag_schema_reg  # noqa: F401 — triggers registration
+from yatsaury.schemas import raw as _raw_reg  # noqa: F401 — triggers registration
+from yatsaury.schemas import sharegpt as _sharegpt_reg  # noqa: F401 — triggers registration
 from yatsaury.schemas.base import get_schema
 from yatsaury.sources.base import resolve_loader
 

@@ -40,6 +40,18 @@ def generate(
     limit_chunks: int = typer.Option(0, "--limit-chunks", help="0 = no limit"),
 ) -> None:
     """Generate training samples from source documents."""
+    import yatsaury.exporters.hf  # noqa: F401
+    import yatsaury.generators.instruction  # noqa: F401
+    import yatsaury.generators.qa  # noqa: F401
+    import yatsaury.generators.rag  # noqa: F401
+    import yatsaury.generators.summary  # noqa: F401
+    import yatsaury.schemas.alpaca  # noqa: F401
+    import yatsaury.schemas.chatml  # noqa: F401
+    import yatsaury.schemas.completion  # noqa: F401
+    import yatsaury.schemas.qa  # noqa: F401
+    import yatsaury.schemas.rag  # noqa: F401
+    import yatsaury.schemas.raw  # noqa: F401
+    import yatsaury.schemas.sharegpt  # noqa: F401
     from yatsaury.config import Settings
     from yatsaury.pipeline import Orchestrator, OrchestratorConfig
 
@@ -168,11 +180,20 @@ def export_cmd(
 
 
 @app.command()
-def schemas(
-    ctx: typer.Context,
-) -> None:
-    """Show JSON schemas for all dataset types."""
-    typer.echo("schemas: not yet implemented")
+def schemas() -> None:
+    """List available record schemas and their compatible dataset types."""
+    import yatsaury.schemas.alpaca  # noqa: F401
+    import yatsaury.schemas.chatml  # noqa: F401
+    import yatsaury.schemas.completion  # noqa: F401
+    import yatsaury.schemas.qa  # noqa: F401
+    import yatsaury.schemas.rag  # noqa: F401
+    import yatsaury.schemas.raw  # noqa: F401
+    import yatsaury.schemas.sharegpt  # noqa: F401
+    from yatsaury.schemas.base import _REGISTRY
+
+    for name, adapter in sorted(_REGISTRY.items()):
+        supported = [t for t in ["qa", "instruction", "summary", "rag"] if adapter.supports(t)]
+        typer.echo(f"{name:12s}  supports: {', '.join(supported)}")
 
 
 @app.command()
