@@ -65,17 +65,17 @@ Goal: simplest full path produces valid records, proven by tests.
 
 ## Phase 2 — Real sources
 
-- [ ] 🔴 `test_sources_pdf.py` — `PdfLoader` extracts text + page numbers from a tiny fixture PDF (`pypdf` fallback path tested too)
-- [ ] 🟢 `sources/pdf.py` (PyMuPDF + `pypdf` fallback)
-- [ ] 🔴 `test_sources_url.py` — `UrlLoader` extracts main content from a recorded HTML fixture (mocked httpx), strips boilerplate
-- [ ] 🟢 `sources/url.py` (trafilatura + httpx)
-- [ ] 🔴 `test_resolve_loader.py` — picks loader by extension / URL scheme / `--source` override
-- [ ] 🟢 `sources/base.py` — `resolve_loader()`
-- [ ] 🔴 `test_clean.py` — normalizes whitespace, strips repeated headers/footers, de-hyphenates line breaks
-- [ ] 🟢 `processing/clean.py`
-- [ ] 🔴 `test_cli_inspect.py` — `inspect` prints chunk count/token stats (CliRunner)
-- [ ] 🟢 `cli.py` — `inspect` command
-- [ ] **Phase gate**: suite green on real PDF/URL fixtures
+- [x] 🔴 `test_sources_pdf.py` — `PdfLoader` extracts text + page numbers from a tiny fixture PDF (`pypdf` fallback path tested too)
+- [x] 🟢 `sources/pdf.py` (PyMuPDF + `pypdf` fallback)
+- [x] 🔴 `test_sources_url.py` — `UrlLoader` extracts main content from a recorded HTML fixture (mocked httpx), strips boilerplate
+- [x] 🟢 `sources/url.py` (trafilatura + httpx)
+- [x] 🔴 `test_resolve_loader.py` — picks loader by extension / URL scheme / `--source` override
+- [x] 🟢 `sources/base.py` — `resolve_loader()`
+- [x] 🔴 `test_clean.py` — normalizes whitespace, strips repeated headers/footers, de-hyphenates line breaks
+- [x] 🟢 `processing/clean.py`
+- [x] 🔴 `test_cli_inspect.py` — `inspect` prints chunk count/token stats (CliRunner)
+- [x] 🟢 `cli.py` — `inspect` command
+- [x] **Phase gate**: suite green on real PDF/URL fixtures
 
 ## Phase 3 — Grounding & quality (religious-accuracy core)
 
