@@ -1,6 +1,7 @@
 """Orchestrator — end-to-end pipeline from URIs to exported records."""
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -50,6 +51,8 @@ class OrchestratorConfig:
     llm_model: str = "gpt-4o-mini"
     paraphrases: int = 1
     difficulty: list[str] = field(default_factory=list)
+    cache_dir: Path | None = None
+    dry_run: bool = False
 
 
 class Orchestrator:
@@ -63,51 +66,132 @@ class Orchestrator:
         source_uris: list[str],
         progress_cb: Callable[[str, float], None] | None = None,
     ) -> list[dict]:
+        from yatsaury.cache import DiskCache
+
         cfg = self._config
+
+        # Dry-run: load + chunk only, no LLM calls
+        if cfg.dry_run:
+            for uri in source_uris:
+                try:
+                    loader = resolve_loader(uri)
+                    doc = loader.load(uri)
+                    doc = doc.model_copy(update={"raw_text": clean_text(doc.raw_text)})
+                    chunk_document(doc, chunk_size=cfg.chunk_size, overlap=cfg.chunk_overlap)
+                except Exception:
+                    logger.exception("Failed to load URI in dry-run: %s", uri)
+            return []
+
         llm = LLMClient(
             base_url=cfg.llm_base_url,
             api_key=cfg.llm_api_key,
             model=cfg.llm_model,
         )
+
+        # Build cache fingerprint
+        fingerprint = json.dumps(
+            {
+                "dataset_types": cfg.dataset_types,
+                "per_chunk": cfg.per_chunk,
+                "chunk_size": cfg.chunk_size,
+                "chunk_overlap": cfg.chunk_overlap,
+                "llm_model": cfg.llm_model,
+                "paraphrases": cfg.paraphrases,
+                "difficulty": cfg.difficulty,
+            },
+            sort_keys=True,
+        )
+        cache: DiskCache | None = (
+            DiskCache(cfg.cache_dir) if cfg.cache_dir is not None else None
+        )
+
         all_samples: list[Sample] = []
         total_uris = len(source_uris)
 
-        for uri_idx, uri in enumerate(source_uris):
-            if progress_cb:
-                progress_cb(f"Loading {uri}", uri_idx / max(total_uris, 1))
+        use_rich = progress_cb is None
+        _progress = None
+        _task_id = None
+        if use_rich:
+            from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+            _progress = Progress(SpinnerColumn(), TextColumn("{task.description}"), BarColumn())
+            _progress.start()
+            _task_id = _progress.add_task("Processing...", total=len(source_uris))
 
-            try:
-                loader = resolve_loader(uri)
-                doc = loader.load(uri)
-                doc = doc.model_copy(update={"raw_text": clean_text(doc.raw_text)})
-            except Exception:
-                logger.exception("Failed to load URI: %s", uri)
-                continue
+        try:
+            for uri_idx, uri in enumerate(source_uris):
+                if _progress and _task_id is not None:
+                    _progress.update(_task_id, description=f"Loading {Path(uri).name}", advance=0)
+                elif progress_cb:
+                    progress_cb(f"Loading {uri}", uri_idx / max(total_uris, 1))
 
-            chunks = chunk_document(doc, chunk_size=cfg.chunk_size, overlap=cfg.chunk_overlap)
-
-            for chunk_idx, chunk in enumerate(chunks):
-                if progress_cb:
-                    progress_cb(
-                        f"Processing chunk {chunk_idx + 1}/{len(chunks)}",
-                        (uri_idx + (chunk_idx + 1) / max(len(chunks), 1)) / max(total_uris, 1),
-                    )
-
-                for dtype in cfg.dataset_types:
-                    try:
-                        generator = get_generator(dtype)
-                        samples = generator.generate(
-                            chunk, cfg.per_chunk, llm,
-                            paraphrases=cfg.paraphrases,
-                            difficulty=cfg.difficulty if cfg.difficulty else None,
-                        )
-                    except Exception:
-                        logger.exception(
-                            "Chunk %s failed for dataset_type=%s — skipping", chunk.id, dtype
-                        )
+                # Check cache
+                if cache is not None:
+                    cached = cache.get(uri, fingerprint)
+                    if cached is not None:
+                        all_samples.extend(Sample.model_validate(d) for d in cached)
+                        if _progress and _task_id is not None:
+                            _progress.update(_task_id, advance=1)
                         continue
 
-                    all_samples.extend(samples)
+                try:
+                    loader = resolve_loader(uri)
+                    doc = loader.load(uri)
+                    doc = doc.model_copy(update={"raw_text": clean_text(doc.raw_text)})
+                except Exception:
+                    logger.exception("Failed to load URI: %s", uri)
+                    if _progress and _task_id is not None:
+                        _progress.update(_task_id, advance=1)
+                    continue
+
+                chunks = chunk_document(
+                    doc, chunk_size=cfg.chunk_size, overlap=cfg.chunk_overlap
+                )
+                uri_samples: list[Sample] = []
+
+                for chunk_idx, chunk in enumerate(chunks):
+                    if _progress and _task_id is not None:
+                        _progress.update(
+                            _task_id,
+                            description=(
+                                f"Chunk {chunk_idx + 1}/{len(chunks)} of {Path(uri).name}"
+                            ),
+                        )
+                    elif progress_cb:
+                        progress_cb(
+                            f"Processing chunk {chunk_idx + 1}/{len(chunks)}",
+                            (uri_idx + (chunk_idx + 1) / max(len(chunks), 1))
+                            / max(total_uris, 1),
+                        )
+
+                    for dtype in cfg.dataset_types:
+                        try:
+                            generator = get_generator(dtype)
+                            samples = generator.generate(
+                                chunk, cfg.per_chunk, llm,
+                                paraphrases=cfg.paraphrases,
+                                difficulty=cfg.difficulty if cfg.difficulty else None,
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Chunk %s failed for dataset_type=%s — skipping",
+                                chunk.id, dtype
+                            )
+                            continue
+
+                        uri_samples.extend(samples)
+
+                # Write URI samples to cache
+                if cache is not None:
+                    cache.set(uri, fingerprint, [s.model_dump() for s in uri_samples])
+
+                all_samples.extend(uri_samples)
+
+                if _progress and _task_id is not None:
+                    _progress.update(_task_id, advance=1)
+
+        finally:
+            if _progress:
+                _progress.stop()
 
         verified = verify_samples(
             all_samples,

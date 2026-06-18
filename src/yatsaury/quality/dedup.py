@@ -83,3 +83,69 @@ def dedup_samples(
     ]
 
     return result
+
+
+def cosine_similarity(a: list[float], b: list[float]) -> float:
+    """Compute cosine similarity between two vectors."""
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = sum(x * x for x in a) ** 0.5
+    norm_b = sum(x * x for x in b) ** 0.5
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def embed_texts(
+    texts: list[str],
+    client,
+    model: str = "text-embedding-3-small",
+) -> list[list[float]]:
+    """Call client.embeddings.create(input=texts, model=model).
+
+    Returns list of embedding vectors.
+    """
+    response = client.embeddings.create(input=texts, model=model)
+    return [item.embedding for item in response.data]
+
+
+def dedup_by_embeddings(
+    samples: list[Sample],
+    client,
+    threshold: float = 0.95,
+    model: str = "text-embedding-3-small",
+) -> list[Sample]:
+    """Embed each sample's (question + answer) text. Remove near-dups by cosine similarity.
+
+    If similarity >= threshold: keep the one with higher grounding_score.
+    Returns deduplicated list.
+    This is an OPTIONAL alternative to rapidfuzz; not wired into the default pipeline.
+    """
+    if not samples:
+        return []
+
+    texts = [
+        sample.payload.get("question", "") + " " + sample.payload.get("answer", "")
+        for sample in samples
+    ]
+    vectors = embed_texts(texts, client, model=model)
+
+    kept_indices: list[int] = []
+    for i in range(len(samples)):
+        dominated = False
+        to_replace: int | None = None
+        for j_pos, j in enumerate(kept_indices):
+            sim = cosine_similarity(vectors[i], vectors[j])
+            if sim >= threshold:
+                if samples[i].grounding_score > samples[j].grounding_score:
+                    to_replace = j_pos
+                else:
+                    dominated = True
+                break
+        if dominated:
+            continue
+        if to_replace is not None:
+            kept_indices[to_replace] = i
+        else:
+            kept_indices.append(i)
+
+    return [samples[i] for i in kept_indices]

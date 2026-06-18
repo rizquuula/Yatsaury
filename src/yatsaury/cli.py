@@ -40,6 +40,7 @@ def generate(
     limit_chunks: int = typer.Option(0, "--limit-chunks", help="0 = no limit"),
     paraphrases: int = typer.Option(1, "--paraphrases", help="Paraphrase variants per Q&A"),
     difficulty: str = typer.Option("", "--difficulty", help="Comma-separated: easy,medium,hard"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print plan without making LLM calls"),
 ) -> None:
     """Generate training samples from source documents."""
     import yatsaury.exporters.hf  # noqa: F401
@@ -71,6 +72,7 @@ def generate(
         llm_model=model or settings.model,
         paraphrases=paraphrases,
         difficulty=[d.strip() for d in difficulty.split(",") if d.strip()],
+        dry_run=dry_run,
     )
     orch = Orchestrator(config)
     records = orch.run(input)
@@ -210,7 +212,24 @@ def web(
 
 @app.command(name="config")
 def config_cmd(
-    ctx: typer.Context,
+    show: bool = typer.Option(True, "--show/--no-show", help="Show resolved config"),
 ) -> None:
-    """Show or validate current configuration."""
-    typer.echo("config: not yet implemented")
+    """Show the resolved configuration (API key is masked)."""
+    from yatsaury.config import Settings
+    settings = Settings()
+    typer.echo("Resolved configuration:")
+    typer.echo(f"  base_url     : {settings.base_url}")
+    typer.echo(
+        f"  api_key      : "
+        f"{'***' if settings.api_key.get_secret_value() else '(not set)'}"
+    )
+    typer.echo(f"  model        : {settings.model}")
+    typer.echo(f"  judge_model  : {settings.judge_model or '(uses model)'}")
+    typer.echo(f"  chunk_size   : {settings.chunk_size}")
+    typer.echo(f"  chunk_overlap: {settings.chunk_overlap}")
+    typer.echo(f"  per_chunk    : {settings.per_chunk}")
+    typer.echo(f"  min_score    : {settings.min_score}")
+    typer.echo(f"  lang         : {settings.lang}")
+    typer.echo(f"  workspace    : {settings.workspace}")
+    typer.echo(f"  web_host     : {settings.web_host}")
+    typer.echo(f"  web_port     : {settings.web_port}")
