@@ -90,18 +90,81 @@ def inspect(
 
 @app.command()
 def verify(
-    ctx: typer.Context,
+    input: Path = typer.Option(..., "-i", "--input", help="JSONL file of samples to re-score"),
+    output: Path = typer.Option(
+        None, "-o", "--output", help="Output JSONL (default: overwrite input)"
+    ),
+    min_score: float = typer.Option(0.7, "--min-score"),
+    no_judge: bool = typer.Option(False, "--no-judge", help="Skip LLM judge; use quote check only"),
+    model: str = typer.Option("", "--model"),
+    base_url: str = typer.Option("", "--base-url"),
+    api_key: str = typer.Option("", "--api-key"),
+    judge_model: str = typer.Option("", "--judge-model"),
 ) -> None:
-    """Verify grounding scores for generated samples."""
-    typer.echo("verify: not yet implemented")
+    """Re-score an existing JSONL dataset for grounding quality."""
+    from yatsaury.config import Settings
+    from yatsaury.llm.client import LLMClient
+    from yatsaury.models import Sample
+    from yatsaury.quality.verify import verify_samples
+
+    settings = Settings()
+    llm = LLMClient(
+        base_url=base_url or settings.base_url,
+        api_key=api_key or settings.api_key.get_secret_value(),
+        model=model or settings.model,
+    )
+    samples = [
+        Sample.model_validate_json(line)
+        for line in input.read_text().splitlines()
+        if line.strip()
+    ]
+    passing = verify_samples(samples, llm, min_score=min_score,
+                             judge_model=judge_model or settings.judge_model,
+                             use_judge=not no_judge)
+    out = output or input
+    out.write_text("\n".join(s.model_dump_json() for s in passing) + "\n")
+    typer.echo(f"Kept {len(passing)}/{len(samples)} samples.")
 
 
-@app.command()
-def export(
-    ctx: typer.Context,
+@app.command(name="export")
+def export_cmd(
+    input: Path = typer.Option(..., "-i", "--input", help="JSONL or reviewed CSV to export"),
+    schema: list[str] = typer.Option(["chatml"], "-s", "--schema"),
+    format: list[str] = typer.Option(["jsonl"], "-f", "--format"),
+    output: Path = typer.Option(Path("./output"), "-o", "--output"),
 ) -> None:
-    """Export a dataset to a target format."""
-    typer.echo("export: not yet implemented")
+    """Re-render an existing dataset into a new schema/format (no LLM cost)."""
+    from yatsaury.exporters.base import get_exporter
+    from yatsaury.exporters.review_csv import CsvReviewExporter
+    from yatsaury.models import Sample
+    from yatsaury.schemas.base import get_schema
+
+    if input.suffix.lower() == ".csv":
+        rows = CsvReviewExporter().load_approved(input)
+        samples = []
+        for row in rows:
+            try:
+                samples.append(Sample.model_validate(row))
+            except Exception:
+                pass
+    else:
+        lines = [line for line in input.read_text().splitlines() if line.strip()]
+        samples = [Sample.model_validate_json(line) for line in lines]
+
+    records: list[dict] = []
+    for schema_name in schema:
+        adapter = get_schema(schema_name)
+        for sample in samples:
+            if adapter.supports(sample.dataset_type.value):
+                records.append(adapter.render(sample))
+
+    for fmt in format:
+        exporter_cls = get_exporter(fmt)
+        exporter = exporter_cls()
+        for schema_name in schema:
+            out_path = output / f"{schema_name}.{fmt}"
+            exporter.export(records, out_path)
+    typer.echo(f"Exported {len(records)} records.")
 
 
 @app.command()

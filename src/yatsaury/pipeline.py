@@ -11,8 +11,11 @@ from yatsaury.exporters.base import get_exporter
 from yatsaury.generators import qa as _qa_reg  # noqa: F401 — triggers registration
 from yatsaury.generators.base import get_generator
 from yatsaury.llm.client import LLMClient
+from yatsaury.models import Sample
 from yatsaury.processing.chunk import chunk_document
 from yatsaury.processing.clean import clean_text
+from yatsaury.quality.dedup import dedup_samples
+from yatsaury.quality.verify import verify_samples
 from yatsaury.schemas import chatml as _chatml_reg  # noqa: F401 — triggers registration
 from yatsaury.schemas import qa as _qa_schema_reg  # noqa: F401 — triggers registration
 from yatsaury.schemas.base import get_schema
@@ -54,7 +57,7 @@ class Orchestrator:
             api_key=cfg.llm_api_key,
             model=cfg.llm_model,
         )
-        all_records: list[dict] = []
+        all_samples: list[Sample] = []
         total_uris = len(source_uris)
 
         for uri_idx, uri in enumerate(source_uris):
@@ -88,27 +91,36 @@ class Orchestrator:
                         )
                         continue
 
-                    for sample in samples:
-                        if cfg.min_score > 0.0 and sample.grounding_score < cfg.min_score:
-                            continue
-                        for schema_name in cfg.schema_names:
-                            try:
-                                adapter = get_schema(schema_name)
-                                if not adapter.supports(sample.dataset_type.value):
-                                    logger.warning(
-                                        "Schema %r does not support dataset_type=%r — skipping",
-                                        schema_name,
-                                        sample.dataset_type.value,
-                                    )
-                                    continue
-                                record = adapter.render(sample)
-                                all_records.append(record)
-                            except Exception:
-                                logger.exception(
-                                    "Schema %r failed for sample %s — skipping",
-                                    schema_name,
-                                    sample.id,
-                                )
+                    all_samples.extend(samples)
+
+        verified = verify_samples(
+            all_samples,
+            llm,
+            min_score=cfg.min_score,
+            use_judge=cfg.min_score > 0.0,
+        )
+        deduplicated = dedup_samples(verified)
+
+        all_records: list[dict] = []
+        for sample in deduplicated:
+            for schema_name in cfg.schema_names:
+                try:
+                    adapter = get_schema(schema_name)
+                    if not adapter.supports(sample.dataset_type.value):
+                        logger.warning(
+                            "Schema %r does not support dataset_type=%r — skipping",
+                            schema_name,
+                            sample.dataset_type.value,
+                        )
+                        continue
+                    record = adapter.render(sample)
+                    all_records.append(record)
+                except Exception:
+                    logger.exception(
+                        "Schema %r failed for sample %s — skipping",
+                        schema_name,
+                        sample.id,
+                    )
 
         # Export — one file per schema per format
         for fmt in cfg.output_formats:
