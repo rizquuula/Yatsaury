@@ -1,6 +1,5 @@
 """Tests for Yatsaury Settings config."""
 
-import os
 from pathlib import Path
 
 import pytest

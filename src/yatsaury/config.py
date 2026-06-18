@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def apply_openai_fallbacks(self) -> "Settings":
+    def apply_openai_fallbacks(self) -> Settings:
         """Fall back to OPENAI_API_KEY / OPENAI_BASE_URL if YATSAURY_ vars not set."""
         if not self.api_key.get_secret_value():
             openai_key = os.environ.get("OPENAI_API_KEY", "")

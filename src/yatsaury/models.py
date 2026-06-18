@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class SourceType(str, Enum):
+class SourceType(StrEnum):
     pdf = "pdf"
     url = "url"
     text = "text"
@@ -40,7 +40,7 @@ class Citation(BaseModel):
     source_uri: str
 
 
-class DatasetType(str, Enum):
+class DatasetType(StrEnum):
     qa = "qa"
     instruction = "instruction"
     rag = "rag"
