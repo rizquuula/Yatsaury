@@ -44,24 +44,24 @@ Goal: project boots, `yatsaury --help` works, test infrastructure runs.
 
 Goal: simplest full path produces valid records, proven by tests.
 
-- [ ] 🔴 `test_sources_text.py` — `TextLoader` loads str/`.txt`/`.md` → `Document`
-- [ ] 🟢 `sources/base.py` (protocol) + `sources/text.py`
-- [ ] 🔴 `test_chunk.py` — token-aware splitter respects size/overlap, sets `char_span`, never splits mid-token boundary wrongly
-- [ ] 🟢 `processing/chunk.py` (tiktoken)
-- [ ] 🔴 `test_llm_client.py` — `LLMClient` parses JSON-mode output, retries on failure (mocked openai), passes `base_url`
-- [ ] 🟢 `llm/client.py` (openai SDK + tenacity) + `llm/prompts.py` (grounding-first Q&A prompt)
-- [ ] 🔴 `test_generators_qa.py` — `QaGenerator` turns a chunk + mocked LLM response into valid `Sample`s; drops `{"insufficient": true}`
-- [ ] 🟢 `generators/base.py` (protocol + registry) + `generators/qa.py`
-- [ ] 🔴 `test_schemas.py` — fixed `Sample` renders to expected dict for `chatml` and `qa` (snapshot); `supports()` correct
-- [ ] 🟢 `schemas/base.py` (protocol + registry) + `schemas/chatml.py` + `schemas/qa.py`
-- [ ] 🔴 `test_exporters_jsonl.py` — `JsonlExporter` writes one valid JSON object per line from rendered dicts
-- [ ] 🟢 `exporters/base.py` (protocol + registry) + `exporters/jsonl.py`
-- [ ] 🔴 `test_pipeline.py` — Orchestrator wires generate → render → serialize (all mocked); one bad chunk doesn't abort the run
-- [ ] 🟢 `pipeline.py` (minimal Orchestrator)
-- [ ] 🔴 `test_cli_generate.py` — `generate` (CliRunner, mocked LLM) produces ChatML JSONL; `-s qa` produces Q&A from same run
-- [ ] 🟢 `cli.py` — implement `generate` with `-t/-s/-f` + `examples/sirah_sample.txt`
-- [ ] 🔴 `test_e2e_generate.py` (`@e2e`) — real local Ollama run yields valid records
-- [ ] **Phase gate**: unit suite green; opt-in e2e passes against Ollama
+- [x] 🔴 `test_sources_text.py` — `TextLoader` loads str/`.txt`/`.md` → `Document`
+- [x] 🟢 `sources/base.py` (protocol) + `sources/text.py`
+- [x] 🔴 `test_chunk.py` — token-aware splitter respects size/overlap, sets `char_span`, never splits mid-token boundary wrongly
+- [x] 🟢 `processing/chunk.py` (tiktoken)
+- [x] 🔴 `test_llm_client.py` — `LLMClient` parses JSON-mode output, retries on failure (mocked openai), passes `base_url`
+- [x] 🟢 `llm/client.py` (openai SDK + tenacity) + `llm/prompts.py` (grounding-first Q&A prompt)
+- [x] 🔴 `test_generators_qa.py` — `QaGenerator` turns a chunk + mocked LLM response into valid `Sample`s; drops `{"insufficient": true}`
+- [x] 🟢 `generators/base.py` (protocol + registry) + `generators/qa.py`
+- [x] 🔴 `test_schemas.py` — fixed `Sample` renders to expected dict for `chatml` and `qa` (snapshot); `supports()` correct
+- [x] 🟢 `schemas/base.py` (protocol + registry) + `schemas/chatml.py` + `schemas/qa.py`
+- [x] 🔴 `test_exporters_jsonl.py` — `JsonlExporter` writes one valid JSON object per line from rendered dicts
+- [x] 🟢 `exporters/base.py` (protocol + registry) + `exporters/jsonl.py`
+- [x] 🔴 `test_pipeline.py` — Orchestrator wires generate → render → serialize (all mocked); one bad chunk doesn't abort the run
+- [x] 🟢 `pipeline.py` (minimal Orchestrator)
+- [x] 🔴 `test_cli_generate.py` — `generate` (CliRunner, mocked LLM) produces ChatML JSONL; `-s qa` produces Q&A from same run
+- [x] 🟢 `cli.py` — implement `generate` with `-t/-s/-f` + `examples/sirah_sample.txt`
+- [x] 🔴 `test_e2e_generate.py` (`@e2e`) — real local Ollama run yields valid records
+- [x] **Phase gate**: unit suite green; opt-in e2e passes against Ollama
 
 ## Phase 2 — Real sources
 
