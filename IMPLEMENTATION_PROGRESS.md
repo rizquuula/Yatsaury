@@ -119,16 +119,16 @@ Goal: simplest full path produces valid records, proven by tests.
 
 ## Phase 6 — Polish
 
-- [ ] 🔴 `test_cache.py` — second run is a cache hit (no LLM/extraction re-call) for same input+config
-- [ ] 🟢 `cache.py` — content-hash disk cache / resumability
-- [ ] 🔴 `test_dry_run.py` — `--dry-run` prints plan + token/cost estimate, makes zero LLM calls
-- [ ] 🟢 `--dry-run`
-- [ ] 🔴 `test_embeddings_dedup.py` — embeddings near-dup (mocked `/embeddings`)
-- [ ] 🟢 embeddings-based near-dup (optional)
-- [ ] 🔴 `test_cli_config_show.py` — `config show` prints resolved config with the API key masked
-- [ ] 🟢 `config show` command
-- [ ] `rich` progress bars (cosmetic, no test); README + examples; raise coverage threshold
-- [ ] **Phase gate**: `uv run pytest && uv run ruff check && uv run mypy` clean; coverage ≥ target
+- [x] 🔴 `test_cache.py` — second run is a cache hit (no LLM/extraction re-call) for same input+config
+- [x] 🟢 `cache.py` — content-hash disk cache / resumability
+- [x] 🔴 `test_dry_run.py` — `--dry-run` prints plan + token/cost estimate, makes zero LLM calls
+- [x] 🟢 `--dry-run`
+- [x] 🔴 `test_embeddings_dedup.py` — embeddings near-dup (mocked `/embeddings`)
+- [x] 🟢 embeddings-based near-dup (optional)
+- [x] 🔴 `test_cli_config_show.py` — `config show` prints resolved config with the API key masked
+- [x] 🟢 `config show` command
+- [x] `rich` progress bars (cosmetic, no test); README + examples; raise coverage threshold
+- [x] **Phase gate**: `uv run pytest && uv run ruff check && uv run mypy` clean; coverage ≥ target
 
 ## Phase 7 — Web UI (`yatsaury web`, NiceGUI)
 
