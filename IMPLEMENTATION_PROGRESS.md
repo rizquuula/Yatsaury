@@ -135,19 +135,19 @@ Goal: simplest full path produces valid records, proven by tests.
 Thin front-end over the same `Orchestrator`. Can begin once Phase 1 exists; richer after Phase 3–4.
 Storage: `./.yatsaury/`. Layout: single column (process on top, history below).
 
-- [ ] 🔴 `test_session_store.py` — `SessionStore.create/list/get/update`; dir layout created; `list()` sorted newest-first; status transitions queued→running→done/error
-- [ ] 🟢 `session/models.py` (`Session`, `SessionStatus`, `SessionInput`) + `session/store.py`
-- [ ] 🔴 `test_session_persistence.py` — finished session keeps `samples.jsonl`; re-export to another schema/format works with no LLM call
-- [ ] 🟢 wire `SessionStore` re-export path to §6 adapters + exporters
-- [ ] 🔴 `test_web_jobs.py` — background job (mocked Orchestrator) updates `status`/`progress`; failure sets `error` without crashing
-- [ ] 🟢 `web/jobs.py` — background job runner + progress callbacks
-- [ ] 🔴 `test_web_app.py` (`nicegui.testing`) — page renders; upload+text accepted; clicking **Process** creates a session & starts a job; history shows it; download link present
-- [ ] 🟢 `web/app.py` — single-column NiceGUI page (form + history + live `ui.timer` refresh)
-- [ ] 🔴 `test_cli_web.py` — `web` command builds the app/server with host/port/workspace (no real serve)
-- [ ] 🟢 `cli.py` — `web` command (`--host/--port/--workspace/--open`)
-- [ ] 🔴 `test_cli_generate_session.py` — `generate --session` records the run into the store (shared history with web)
-- [ ] 🟢 `cli.py` — `--session` flag on `generate`
-- [ ] **Phase gate**: open `yatsaury web`, upload a file, Process, see it in history, reopen → history persists; unit suite green
+- [x] 🔴 `test_session_store.py` — `SessionStore.create/list/get/update`; dir layout created; `list()` sorted newest-first; status transitions queued→running→done/error
+- [x] 🟢 `session/models.py` (`Session`, `SessionStatus`, `SessionInput`) + `session/store.py`
+- [x] 🔴 `test_session_persistence.py` — finished session keeps `samples.jsonl`; re-export to another schema/format works with no LLM call
+- [x] 🟢 wire `SessionStore` re-export path to §6 adapters + exporters
+- [x] 🔴 `test_web_jobs.py` — background job (mocked Orchestrator) updates `status`/`progress`; failure sets `error` without crashing
+- [x] 🟢 `web/jobs.py` — background job runner + progress callbacks
+- [x] 🔴 `test_web_app.py` (`nicegui.testing`) — page renders; upload+text accepted; clicking **Process** creates a session & starts a job; history shows it; download link present
+- [x] 🟢 `web/app.py` — single-column NiceGUI page (form + history + live `ui.timer` refresh)
+- [x] 🔴 `test_cli_web.py` — `web` command builds the app/server with host/port/workspace (no real serve)
+- [x] 🟢 `cli.py` — `web` command (`--host/--port/--workspace/--open`)
+- [x] 🔴 `test_cli_generate_session.py` — `generate --session` records the run into the store (shared history with web)
+- [x] 🟢 `cli.py` — `--session` flag on `generate`
+- [x] **Phase gate**: open `yatsaury web`, upload a file, Process, see it in history, reopen → history persists; unit suite green
 
 ---
 
