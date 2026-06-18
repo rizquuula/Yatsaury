@@ -1,0 +1,17 @@
+# Yatsaury configuration — copy to config.toml and adjust as needed
+# Settings here are non-secret defaults; put API keys in .env instead
+
+[yatsaury]
+base_url = "https://api.openai.com/v1"
+model = "gpt-4o-mini"
+judge_model = ""
+
+chunk_size = 512
+chunk_overlap = 64
+per_chunk = 3
+min_score = 0.7
+lang = "auto"
+
+workspace = "./.yatsaury"
+web_host = "127.0.0.1"
+web_port = 8080
