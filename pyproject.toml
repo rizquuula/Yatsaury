@@ -33,7 +33,7 @@ packages = ["src/yatsaury"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["e2e: end-to-end tests requiring external services (deselect with -m 'not e2e')"]
-addopts = "--tb=short -q"
+addopts = "--tb=short -q -m 'not e2e'"
 
 [tool.ruff]
 line-length = 100
