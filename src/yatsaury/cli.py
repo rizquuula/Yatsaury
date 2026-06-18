@@ -65,10 +65,27 @@ def generate(
 
 @app.command()
 def inspect(
-    ctx: typer.Context,
+    input: list[str] = typer.Option(..., "-i", "--input", help="Input files or URLs"),
+    chunk_size: int = typer.Option(512, "--chunk-size"),
+    chunk_overlap: int = typer.Option(64, "--chunk-overlap"),
 ) -> None:
-    """Inspect a dataset or generated samples."""
-    typer.echo("inspect: not yet implemented")
+    """Load and chunk sources; print document and chunk statistics."""
+    from yatsaury.processing.chunk import chunk_document
+    from yatsaury.processing.clean import clean_text
+    from yatsaury.sources.base import resolve_loader
+
+    for uri in input:
+        loader = resolve_loader(uri)
+        doc = loader.load(uri)
+        doc = doc.model_copy(update={"raw_text": clean_text(doc.raw_text)})
+        chunks = chunk_document(doc, chunk_size=chunk_size, overlap=chunk_overlap)
+        total_tokens = sum(c.token_count for c in chunks)
+        typer.echo(f"Source: {uri}")
+        typer.echo(f"  Characters : {len(doc.raw_text)}")
+        typer.echo(f"  Chunks     : {len(chunks)}")
+        typer.echo(f"  Total tokens: {total_tokens}")
+        if chunks:
+            typer.echo(f"  Avg tokens/chunk: {total_tokens // len(chunks)}")
 
 
 @app.command()

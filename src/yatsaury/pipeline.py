@@ -12,11 +12,11 @@ from yatsaury.generators import qa as _qa_reg  # noqa: F401 — triggers registr
 from yatsaury.generators.base import get_generator
 from yatsaury.llm.client import LLMClient
 from yatsaury.processing.chunk import chunk_document
+from yatsaury.processing.clean import clean_text
 from yatsaury.schemas import chatml as _chatml_reg  # noqa: F401 — triggers registration
 from yatsaury.schemas import qa as _qa_schema_reg  # noqa: F401 — triggers registration
 from yatsaury.schemas.base import get_schema
 from yatsaury.sources.base import resolve_loader
-from yatsaury.sources.text import TextLoader
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,6 @@ class Orchestrator:
             api_key=cfg.llm_api_key,
             model=cfg.llm_model,
         )
-        loaders = [TextLoader()]
         all_records: list[dict] = []
         total_uris = len(source_uris)
 
@@ -63,8 +62,9 @@ class Orchestrator:
                 progress_cb(f"Loading {uri}", uri_idx / max(total_uris, 1))
 
             try:
-                loader = resolve_loader(uri, loaders)
+                loader = resolve_loader(uri)
                 doc = loader.load(uri)
+                doc = doc.model_copy(update={"raw_text": clean_text(doc.raw_text)})
             except Exception:
                 logger.exception("Failed to load URI: %s", uri)
                 continue
