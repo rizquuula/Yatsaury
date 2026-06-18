@@ -79,17 +79,17 @@ Goal: simplest full path produces valid records, proven by tests.
 
 ## Phase 3 — Grounding & quality (religious-accuracy core)
 
-- [ ] 🔴 `test_quote_check.py` — `supporting_quote` substring check passes on real spans, fails on invented text (whitespace-fuzzy)
-- [ ] 🟢 programmatic quote-check in `quality/verify.py`
-- [ ] 🔴 `test_verify_judge.py` — LLM-judge (mocked) returns `grounding_score`/`is_supported`; samples below `--min-score` dropped
-- [ ] 🟢 `quality/verify.py` — LLM-judge scorer + `--judge-model`
-- [ ] 🔴 `test_dedup.py` — exact dups collapse; near-dups (rapidfuzz) collapse keeping highest score
-- [ ] 🟢 `quality/dedup.py`
-- [ ] 🔴 `test_review_csv.py` — `CsvReviewExporter` writes expected columns incl. `approved`; round-trips back
-- [ ] 🟢 `exporters/review_csv.py`
-- [ ] 🔴 `test_cli_verify_export.py` — `verify` re-scores a JSONL; `export` keeps only `approved` rows
-- [ ] 🟢 `cli.py` — `--verify/--no-verify`, `--min-score`; `verify` + `export` subcommands
-- [ ] **Phase gate**: an unsupported sample is provably dropped end-to-end
+- [x] 🔴 `test_quote_check.py` — `supporting_quote` substring check passes on real spans, fails on invented text (whitespace-fuzzy)
+- [x] 🟢 programmatic quote-check in `quality/verify.py`
+- [x] 🔴 `test_verify_judge.py` — LLM-judge (mocked) returns `grounding_score`/`is_supported`; samples below `--min-score` dropped
+- [x] 🟢 `quality/verify.py` — LLM-judge scorer + `--judge-model`
+- [x] 🔴 `test_dedup.py` — exact dups collapse; near-dups (rapidfuzz) collapse keeping highest score
+- [x] 🟢 `quality/dedup.py`
+- [x] 🔴 `test_review_csv.py` — `CsvReviewExporter` writes expected columns incl. `approved`; round-trips back
+- [x] 🟢 `exporters/review_csv.py`
+- [x] 🔴 `test_cli_verify_export.py` — `verify` re-scores a JSONL; `export` keeps only `approved` rows
+- [x] 🟢 `cli.py` — `--verify/--no-verify`, `--min-score`; `verify` + `export` subcommands
+- [x] **Phase gate**: an unsupported sample is provably dropped end-to-end
 
 ## Phase 4 — Remaining dataset types, schemas & formats
 
