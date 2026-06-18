@@ -6,6 +6,8 @@ from pathlib import Path
 
 import typer
 
+from yatsaury.config import Settings
+
 app = typer.Typer(
     name="yatsaury",
     help="Turn source material into LLM training datasets.",
@@ -41,6 +43,7 @@ def generate(
     paraphrases: int = typer.Option(1, "--paraphrases", help="Paraphrase variants per Q&A"),
     difficulty: str = typer.Option("", "--difficulty", help="Comma-separated: easy,medium,hard"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print plan without making LLM calls"),
+    session_flag: bool = typer.Option(False, "--session", help="Record run in session store"),
 ) -> None:
     """Generate training samples from source documents."""
     import yatsaury.exporters.hf  # noqa: F401
@@ -55,10 +58,21 @@ def generate(
     import yatsaury.schemas.rag  # noqa: F401
     import yatsaury.schemas.raw  # noqa: F401
     import yatsaury.schemas.sharegpt  # noqa: F401
-    from yatsaury.config import Settings
     from yatsaury.pipeline import Orchestrator, OrchestratorConfig
 
     settings = Settings()
+    session_obj = None
+    if session_flag:
+        from yatsaury.session.models import SessionInput
+        from yatsaury.session.store import SessionStore
+        _store = SessionStore(settings.workspace)
+        _inputs = [SessionInput(uri=u) for u in input]
+        session_obj = _store.create(
+            title=f"generate-{Path(input[0]).stem if input else 'run'}",
+            inputs=_inputs,
+            config={"dataset_types": type, "schema_names": schema, "output_formats": format},
+        )
+        typer.echo(f"Session: {session_obj.id}")
     config = OrchestratorConfig(
         dataset_types=type,
         schema_names=schema,
@@ -204,10 +218,26 @@ def schemas() -> None:
 
 @app.command()
 def web(
-    ctx: typer.Context,
+    host: str = typer.Option("", "--host"),
+    port: int = typer.Option(0, "--port"),
+    workspace: Path = typer.Option(None, "--workspace"),
+    open_browser: bool = typer.Option(True, "--open/--no-open"),
 ) -> None:
     """Launch the Yatsaury web UI."""
-    typer.echo("web: not yet implemented")
+    from yatsaury.session.store import SessionStore
+    from yatsaury.web.app import create_app
+
+    settings = Settings()
+    _host = host or settings.web_host
+    _port = port or settings.web_port
+    _workspace = workspace or settings.workspace
+
+    store = SessionStore(_workspace)
+    create_app(store, _workspace)
+
+    typer.echo(f"Starting Yatsaury web at http://{_host}:{_port}")
+    import nicegui
+    nicegui.ui.run(host=_host, port=_port, show=open_browser, title="Yatsaury")
 
 
 @app.command(name="config")
