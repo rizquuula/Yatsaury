@@ -55,7 +55,7 @@ class Sample(BaseModel):
     source_text: str
     supporting_quote: str
     source_citation: Citation
-    grounding_score: float = 0.0
+    quality_score: float = 0.0
     verified: bool = False
     dedup_hash: str = ""
     fact_id: str | None = None

@@ -24,9 +24,9 @@ def dedup_samples(
 ) -> list[Sample]:
     """Remove duplicates from samples list.
 
-    1. Exact dedup: group by content_hash. Keep one per group (highest grounding_score).
+    1. Exact dedup: group by content_hash. Keep one per group (highest quality_score).
     2. Near-dup: among remaining, if rapidfuzz.fuzz.ratio(a_text, b_text) >= threshold*100,
-       keep the one with higher grounding_score.
+       keep the one with higher quality_score.
 
     Returns deduplicated list. Sets dedup_hash on every output sample.
     similarity_threshold: float in [0, 1]; compared as threshold*100 against fuzz.ratio.
@@ -34,12 +34,12 @@ def dedup_samples(
     if not samples:
         return []
 
-    # Step 1 — Exact dedup: group by content_hash, keep highest grounding_score per group.
+    # Step 1 — Exact dedup: group by content_hash, keep highest quality_score per group.
     hash_to_best: dict[str, Sample] = {}
     for sample in samples:
         h = content_hash(sample)
         existing = hash_to_best.get(h)
-        if existing is None or sample.grounding_score > existing.grounding_score:
+        if existing is None or sample.quality_score > existing.quality_score:
             hash_to_best[h] = sample
 
     exact_deduped = list(hash_to_best.values())
@@ -62,8 +62,8 @@ def dedup_samples(
             kept_text = _text(kept)
             ratio = fuzz.ratio(candidate_text, kept_text)
             if ratio >= threshold_score:
-                # Near-duplicate found: keep the one with higher grounding_score.
-                if candidate.grounding_score > kept.grounding_score:
+                # Near-duplicate found: keep the one with higher quality_score.
+                if candidate.quality_score > kept.quality_score:
                     to_replace = i
                 else:
                     dominated = True
@@ -116,7 +116,7 @@ def dedup_by_embeddings(
 ) -> list[Sample]:
     """Embed each sample's (question + answer) text. Remove near-dups by cosine similarity.
 
-    If similarity >= threshold: keep the one with higher grounding_score.
+    If similarity >= threshold: keep the one with higher quality_score.
     Returns deduplicated list.
     This is an OPTIONAL alternative to rapidfuzz; not wired into the default pipeline.
     """
@@ -136,7 +136,7 @@ def dedup_by_embeddings(
         for j_pos, j in enumerate(kept_indices):
             sim = cosine_similarity(vectors[i], vectors[j])
             if sim >= threshold:
-                if samples[i].grounding_score > samples[j].grounding_score:
+                if samples[i].quality_score > samples[j].quality_score:
                     to_replace = j_pos
                 else:
                     dominated = True

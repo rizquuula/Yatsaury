@@ -21,7 +21,7 @@ def make_sample(
         source_text="source",
         supporting_quote="source",
         source_citation=Citation(title="MyBook", page=42, source_uri="uri://x"),
-        grounding_score=0.85,
+        quality_score=0.85,
         verified=True,
     )
 

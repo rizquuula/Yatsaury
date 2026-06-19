@@ -23,7 +23,7 @@ class CsvReviewExporter:
         "supporting_quote",
         "source_title",
         "source_page",
-        "grounding_score",
+        "quality_score",
         "verified",
         "approved",
     ]
@@ -44,7 +44,7 @@ class CsvReviewExporter:
                         "supporting_quote": sample.supporting_quote,
                         "source_title": sample.source_citation.title,
                         "source_page": sample.source_citation.page or "",
-                        "grounding_score": sample.grounding_score,
+                        "quality_score": sample.quality_score,
                         "verified": sample.verified,
                         "approved": "",
                     }

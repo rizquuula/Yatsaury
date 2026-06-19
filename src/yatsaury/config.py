@@ -15,12 +15,13 @@ class Settings(BaseSettings):
     api_key: SecretStr = SecretStr("")
     model: str = "gpt-4o-mini"
     judge_model: str = ""
+    judge_batch_size: int = 1
 
     # Generation
     chunk_size: int = 512
     chunk_overlap: int = 64
     per_chunk: int = 3
-    min_score: float = 0.7
+    min_score: float = 70.0
     lang: str = "auto"
 
     # Web / workspace

@@ -8,7 +8,7 @@ from yatsaury.quality.dedup import content_hash, dedup_samples
 def make_sample(
     question: str,
     answer: str,
-    grounding_score: float = 0.5,
+    quality_score: float = 50.0,
     sid: str = "s1",
 ) -> Sample:
     return Sample(
@@ -19,17 +19,17 @@ def make_sample(
         source_text=f"{question} {answer}",
         supporting_quote=question,
         source_citation=Citation(title="T", source_uri="uri://x"),
-        grounding_score=grounding_score,
+        quality_score=quality_score,
     )
 
 
 def test_exact_dedup_keeps_higher_score() -> None:
-    """Two identical samples → only the one with higher grounding_score is kept."""
-    s_high = make_sample("What is Islam?", "A religion.", grounding_score=0.8, sid="s1")
-    s_low = make_sample("What is Islam?", "A religion.", grounding_score=0.5, sid="s2")
+    """Two identical samples → only the one with higher quality_score is kept."""
+    s_high = make_sample("What is Islam?", "A religion.", quality_score=80.0, sid="s1")
+    s_low = make_sample("What is Islam?", "A religion.", quality_score=50.0, sid="s2")
     result = dedup_samples([s_high, s_low])
     assert len(result) == 1
-    assert result[0].grounding_score == 0.8
+    assert result[0].quality_score == 80.0
 
 
 def test_near_dup_collapses() -> None:
@@ -37,27 +37,27 @@ def test_near_dup_collapses() -> None:
     s_high = make_sample(
         "What is Islam?",
         "Islam is a monotheistic Abrahamic religion.",
-        grounding_score=0.9,
+        quality_score=90.0,
         sid="s1",
     )
     s_low = make_sample(
         "What is Islam?",
         "Islam is a monotheistic Abrahamic faith.",
-        grounding_score=0.6,
+        quality_score=60.0,
         sid="s2",
     )
     result = dedup_samples([s_high, s_low], similarity_threshold=0.85)
     assert len(result) == 1
-    assert result[0].grounding_score == 0.9
+    assert result[0].quality_score == 90.0
 
 
 def test_different_samples_both_kept() -> None:
     """Two completely different samples → both are kept."""
-    s1 = make_sample("What is Islam?", "A monotheistic religion.", grounding_score=0.7, sid="s1")
+    s1 = make_sample("What is Islam?", "A monotheistic religion.", quality_score=70.0, sid="s1")
     s2 = make_sample(
         "What is the capital of France?",
         "Paris is the capital of France.",
-        grounding_score=0.8,
+        quality_score=80.0,
         sid="s2",
     )
     result = dedup_samples([s1, s2])
@@ -117,9 +117,9 @@ def test_content_hash_different() -> None:
 
 def test_exact_dedup_three_samples() -> None:
     """Three samples where two are identical and one is different → 2 kept."""
-    s_dup_high = make_sample("What is Islam?", "A religion.", grounding_score=0.9, sid="s1")
-    s_dup_low = make_sample("What is Islam?", "A religion.", grounding_score=0.4, sid="s2")
-    s_different = make_sample("What is Python?", "A language.", grounding_score=0.7, sid="s3")
+    s_dup_high = make_sample("What is Islam?", "A religion.", quality_score=90.0, sid="s1")
+    s_dup_low = make_sample("What is Islam?", "A religion.", quality_score=40.0, sid="s2")
+    s_different = make_sample("What is Python?", "A language.", quality_score=70.0, sid="s3")
     result = dedup_samples([s_dup_high, s_dup_low, s_different])
     assert len(result) == 2
     ids = {s.id for s in result}

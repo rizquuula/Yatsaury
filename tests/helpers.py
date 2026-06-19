@@ -12,7 +12,7 @@ def make_chunk(text: str = "Test source text.") -> Chunk:
 
 
 def make_qa_sample(
-    question="Q?", answer="A.", quote="A.", fact_id=None, grounding_score=None
+    question="Q?", answer="A.", quote="A.", fact_id=None, quality_score=None
 ) -> Sample:
     kwargs = dict(
         id=uuid4().hex, chunk_id="chk1", dataset_type=DatasetType.qa,
@@ -21,8 +21,8 @@ def make_qa_sample(
         source_citation=Citation(title="", source_uri=""),
         fact_id=fact_id,
     )
-    if grounding_score is not None:
-        kwargs["grounding_score"] = grounding_score
+    if quality_score is not None:
+        kwargs["quality_score"] = quality_score
     return Sample(**kwargs)
 
 

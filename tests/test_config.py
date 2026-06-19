@@ -30,7 +30,11 @@ class TestSettingsDefaults:
 
     def test_default_min_score(self) -> None:
         s = Settings()
-        assert s.min_score == 0.7
+        assert s.min_score == 70.0
+
+    def test_default_judge_batch_size(self) -> None:
+        s = Settings()
+        assert s.judge_batch_size == 1
 
     def test_default_lang(self) -> None:
         s = Settings()

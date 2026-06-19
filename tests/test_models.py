@@ -133,7 +133,7 @@ class TestSample:
             supporting_quote="This.",
             source_citation=self._make_citation(),
         )
-        assert sample.grounding_score == 0.0
+        assert sample.quality_score == 0.0
         assert sample.verified is False
         assert sample.dedup_hash == ""
         assert sample.fact_id is None
@@ -148,7 +148,7 @@ class TestSample:
             source_text="src",
             supporting_quote="ctx",
             source_citation=self._make_citation(),
-            grounding_score=0.85,
+            quality_score=0.85,
             verified=True,
             dedup_hash="abc123",
             fact_id="f1",

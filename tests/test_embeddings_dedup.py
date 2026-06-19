@@ -24,14 +24,14 @@ def test_cosine_similarity_orthogonal():
 
 
 def test_dedup_by_embeddings_identical(mock_embed_client):
-    """Two samples with identical embeddings → 1 kept (higher grounding_score wins)."""
+    """Two samples with identical embeddings → 1 kept (higher quality_score wins)."""
     from yatsaury.quality.dedup import dedup_by_embeddings
 
     mock_embed_client.embeddings.create.return_value = MagicMock(
         data=[MagicMock(embedding=[1.0, 0.0]), MagicMock(embedding=[1.0, 0.0])]
     )
-    s1 = make_qa_sample(grounding_score=0.8)
-    s2 = make_qa_sample(grounding_score=0.6)
+    s1 = make_qa_sample(quality_score=80.0)
+    s2 = make_qa_sample(quality_score=60.0)
     result = dedup_by_embeddings([s1, s2], mock_embed_client, threshold=0.95)
     assert len(result) == 1
     assert result[0] is s1  # higher score wins

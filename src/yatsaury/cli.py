@@ -126,14 +126,15 @@ def verify(
     output: Path = typer.Option(
         None, "-o", "--output", help="Output JSONL (default: overwrite input)"
     ),
-    min_score: float = typer.Option(0.7, "--min-score"),
+    min_score: float = typer.Option(70.0, "--min-score"),
     no_judge: bool = typer.Option(False, "--no-judge", help="Skip LLM judge; use quote check only"),
     model: str = typer.Option("", "--model"),
     base_url: str = typer.Option("", "--base-url"),
     api_key: str = typer.Option("", "--api-key"),
     judge_model: str = typer.Option("", "--judge-model"),
+    judge_batch_size: int = typer.Option(1, "--judge-batch-size", help="Samples per judge call"),
 ) -> None:
-    """Re-score an existing JSONL dataset for grounding quality."""
+    """Re-score an existing JSONL dataset for quality."""
     from yatsaury.config import Settings
     from yatsaury.llm.client import LLMClient
     from yatsaury.models import Sample
@@ -150,9 +151,14 @@ def verify(
         for line in input.read_text().splitlines()
         if line.strip()
     ]
-    passing = verify_samples(samples, llm, min_score=min_score,
-                             judge_model=judge_model or settings.judge_model,
-                             use_judge=not no_judge)
+    passing = verify_samples(
+        samples,
+        llm,
+        min_score=min_score,
+        judge_model=judge_model or settings.judge_model,
+        use_judge=not no_judge,
+        batch_size=judge_batch_size or settings.judge_batch_size,
+    )
     out = output or input
     out.write_text("\n".join(s.model_dump_json() for s in passing) + "\n")
     typer.echo(f"Kept {len(passing)}/{len(samples)} samples.")
@@ -255,6 +261,7 @@ def config_cmd(
     )
     typer.echo(f"  model        : {settings.model}")
     typer.echo(f"  judge_model  : {settings.judge_model or '(uses model)'}")
+    typer.echo(f"  judge_batch  : {settings.judge_batch_size}")
     typer.echo(f"  chunk_size   : {settings.chunk_size}")
     typer.echo(f"  chunk_overlap: {settings.chunk_overlap}")
     typer.echo(f"  per_chunk    : {settings.per_chunk}")

@@ -34,7 +34,7 @@ class RagGenerator:
                 source_text=chunk.text,
                 supporting_quote=chunk.text[:200],
                 source_citation=Citation(title="", source_uri=""),
-                grounding_score=1.0,
+                quality_score=100.0,
                 verified=True,
             )
         ]

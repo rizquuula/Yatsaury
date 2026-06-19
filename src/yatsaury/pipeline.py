@@ -53,6 +53,7 @@ class OrchestratorConfig:
     difficulty: list[str] = field(default_factory=list)
     cache_dir: Path | None = None
     dry_run: bool = False
+    judge_batch_size: int = 1
 
 
 class Orchestrator:
@@ -198,6 +199,7 @@ class Orchestrator:
             llm,
             min_score=cfg.min_score,
             use_judge=cfg.min_score > 0.0,
+            batch_size=cfg.judge_batch_size,
         )
         deduplicated = dedup_samples(verified)
 

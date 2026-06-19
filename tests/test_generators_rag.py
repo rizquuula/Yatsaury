@@ -34,11 +34,11 @@ class TestRagGenerator:
         samples = gen.generate(chunk, n=1, llm=mock_llm)
         assert samples[0].dataset_type == DatasetType.rag
 
-    def test_grounding_score_is_1(self):
+    def test_quality_score_is_100(self):
         chunk = make_chunk()
         mock_llm = MagicMock()
         samples = RagGenerator().generate(chunk, n=1, llm=mock_llm)
-        assert samples[0].grounding_score == 1.0
+        assert samples[0].quality_score == 100.0
 
     def test_verified_is_true(self):
         chunk = make_chunk()
