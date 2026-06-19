@@ -164,14 +164,39 @@ def create_app(store: SessionStore, workspace: Path) -> None:
 
                 history_container = ui.column().classes("w-full gap-3")
 
+            # Track whether store.list() has ever returned (for first-paint skeleton).
+            state = {"loaded": False}
+
             def refresh_history() -> None:
+                # State 1 (loading): never loaded yet -> skeletons.
+                if not state["loaded"]:
+                    history_container.clear()
+                    with history_container:
+                        components.skeleton_rows()
+
+                try:
+                    sessions = store.list()
+                except Exception:
+                    # State 2 (error): surface it, don't swallow into a blank list.
+                    logger.exception("Failed to load session history")
+                    history_container.clear()
+                    count_label.set_text("")
+                    with history_container:
+                        components.error_state(refresh_history)
+                    return
+
+                state["loaded"] = True
                 history_container.clear()
-                sessions = store.list()
                 n = len(sessions)
                 count_label.set_text(f"{n} session" + ("" if n == 1 else "s"))
                 with history_container:
-                    for s in sessions:
-                        components.session_row(s)
+                    if not sessions:
+                        # State 3 (empty).
+                        components.empty_state()
+                    else:
+                        # State 4 (content), one row per session id.
+                        for s in sessions:
+                            components.session_row(s)
 
             refresh_history()
             ui.timer(3.0, refresh_history)

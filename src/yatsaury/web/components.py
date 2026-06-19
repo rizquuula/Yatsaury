@@ -3,7 +3,10 @@
 These functions contain no business logic — they take already-resolved data and
 render NiceGUI elements styled exclusively from theme tokens.
 """
+
 from __future__ import annotations
+
+from collections.abc import Callable
 
 from nicegui import ui
 from nicegui.elements.dark_mode import DarkMode
@@ -28,9 +31,7 @@ def brand_header(dark_mode_handle: DarkMode) -> None:
             ui.icon("dataset", size="2rem").style("color: var(--text-strong)")
             with ui.column().classes("gap-0"):
                 theme.strong(ui.label("Yatsaury").classes("text-2xl font-bold leading-tight"))
-                theme.muted(
-                    ui.label("Generate training datasets").classes("text-sm leading-tight")
-                )
+                theme.muted(ui.label("Generate training datasets").classes("text-sm leading-tight"))
 
         toggle = (
             ui.button(icon="dark_mode", on_click=dark_mode_handle.toggle)
@@ -44,7 +45,7 @@ def brand_header(dark_mode_handle: DarkMode) -> None:
 
         def _sync_icon() -> None:
             # Show the icon for the action the button performs.
-            toggle.props(f'icon={"light_mode" if dark_mode_handle.value else "dark_mode"}')
+            toggle.props(f"icon={'light_mode' if dark_mode_handle.value else 'dark_mode'}")
 
         dark_mode_handle.on_value_change(lambda _e: _sync_icon())
         _sync_icon()
@@ -54,11 +55,7 @@ def status_chip(status: SessionStatus) -> None:
     """Small rounded chip with a colored dot + text label (color never the only signal)."""
     color, _icon, label = _STATUS_META.get(status, ("info", "help", str(status).title()))
     pulse = " yat-pulse" if status == SessionStatus.running else ""
-    with (
-        ui.row()
-        .classes("items-center gap-2 rounded-full px-3 py-1")
-        .style(theme.subtle_style())
-    ):
+    with ui.row().classes("items-center gap-2 rounded-full px-3 py-1").style(theme.subtle_style()):
         ui.element("div").classes(f"w-2 h-2 rounded-full{pulse}").style(
             f"background: var(--q-{color})"
         )
@@ -90,3 +87,38 @@ def session_row(session: Session) -> None:
             with ui.row().classes("items-center gap-1"):
                 ui.icon("error", size="1rem").style("color: var(--q-negative)")
                 ui.label(session.error).classes("text-xs").style("color: var(--q-negative)")
+
+
+def empty_state() -> None:
+    """Centered placeholder shown when there are no sessions yet."""
+    with ui.column().classes("w-full items-center justify-center gap-2 py-12"):
+        ui.icon("inbox", size="2.5rem").style("color: var(--text-muted)")
+        theme.strong(ui.label("No datasets yet").classes("text-lg font-medium"))
+        theme.muted(
+            ui.label("Fill in the form above and press Process to get started.").classes(
+                "text-sm text-center"
+            )
+        )
+
+
+def skeleton_rows(n: int = 3) -> None:
+    """Render n shimmer placeholder rows matching the session-row layout."""
+    for _ in range(n):
+        with (
+            ui.card()
+            .classes("w-full rounded-xl border p-4 gap-2 min-h-[48px]")
+            .style(theme.card_style())
+        ):
+            with ui.row().classes("w-full items-center justify-between gap-4 no-wrap"):
+                with ui.column().classes("gap-2 min-w-0"):
+                    ui.element("div").classes("yat-shimmer rounded h-4 w-40")
+                    ui.element("div").classes("yat-shimmer rounded h-3 w-24")
+                ui.element("div").classes("yat-shimmer rounded-full h-6 w-20")
+
+
+def error_state(retry: Callable[[], None]) -> None:
+    """Error placeholder with a Retry button wired to the retry callback."""
+    with ui.column().classes("w-full items-center justify-center gap-3 py-12"):
+        ui.icon("cloud_off", size="2.5rem").style("color: var(--q-negative)")
+        theme.strong(ui.label("Couldn't load history").classes("text-lg font-medium"))
+        ui.button("Retry", icon="refresh", on_click=retry).props("flat color=primary")
