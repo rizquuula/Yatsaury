@@ -65,6 +65,7 @@ def generate(
     if session_flag:
         from yatsaury.session.models import SessionInput
         from yatsaury.session.store import SessionStore
+
         _store = SessionStore(settings.workspace)
         _inputs = [SessionInput(uri=u) for u in input]
         session_obj = _store.create(
@@ -147,9 +148,7 @@ def verify(
         model=model or settings.model,
     )
     samples = [
-        Sample.model_validate_json(line)
-        for line in input.read_text().splitlines()
-        if line.strip()
+        Sample.model_validate_json(line) for line in input.read_text().splitlines() if line.strip()
     ]
     passing = verify_samples(
         samples,
@@ -243,7 +242,14 @@ def web(
 
     typer.echo(f"Starting Yatsaury web at http://{_host}:{_port}")
     import nicegui
-    nicegui.ui.run(host=_host, port=_port, show=open_browser, title="Yatsaury")
+
+    nicegui.ui.run(
+        host=_host,
+        port=_port,
+        show=open_browser,
+        title="Yatsaury",
+        storage_secret="yatsaury-web",
+    )
 
 
 @app.command(name="config")
@@ -252,13 +258,11 @@ def config_cmd(
 ) -> None:
     """Show the resolved configuration (API key is masked)."""
     from yatsaury.config import Settings
+
     settings = Settings()
     typer.echo("Resolved configuration:")
     typer.echo(f"  base_url     : {settings.base_url}")
-    typer.echo(
-        f"  api_key      : "
-        f"{'***' if settings.api_key.get_secret_value() else '(not set)'}"
-    )
+    typer.echo(f"  api_key      : {'***' if settings.api_key.get_secret_value() else '(not set)'}")
     typer.echo(f"  model        : {settings.model}")
     typer.echo(f"  judge_model  : {settings.judge_model or '(uses model)'}")
     typer.echo(f"  judge_batch  : {settings.judge_batch_size}")
